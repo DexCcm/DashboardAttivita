@@ -1,0 +1,168 @@
+:root {
+  /*--bg: #EEF3F8;*/
+  --bg: #E3F0F8;
+  --bg-elev: #F6F9FC;
+  --panel: #FFFFFF;
+  --border: #DDE6EF;
+  --border-strong: #BFCEDE;
+  --ink: #0B3C5D;
+  --ink-soft: #355F7A;
+  --muted: #7A8B9C;
+  --muted-2: #A8B5C4;
+  --accent-1: #1A5485;
+  --accent-2: #2E6FA0;
+  --accent-3: #5BA3D0;
+  --accent-4: #7EC8EE;
+  --accent-5: #B0E1F8;
+  --good: #1F7A55;
+  --good-bg: #DCEEE5;
+  --bad:  #B23A3A;
+  --bad-bg: #F1DADA;
+  --warn: #A6772A;
+  --warn-bg: #F3E5C7;
+  --radius: 6px;
+  --radius-lg: 10px;
+  --shadow-sm: 0 1px 0 rgba(11,60,93,.04);
+  --shadow:    0 1px 2px rgba(11,60,93,.06), 0 0 0 1px var(--border);
+  --pad-x: 28px;
+  --pad-y: 22px;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: 'Geist', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-feature-settings: 'cv11', 'ss01';
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+.mono { font-family: 'Geist Mono', ui-monospace, monospace; font-feature-settings: 'tnum'; }
+.tnum { font-variant-numeric: tabular-nums; }
+
+/* ============ LAYOUT ============ */
+.app {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 32px 36px 80px;
+}
+
+/* ============ MASTHEAD ============ */
+/* Barra logo centrata (stile corporate — ref: tool legacy) */
+.logo-bar {
+  background: linear-gradient(180deg, #3A404C, #1d2838);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+   border-radius:16px;
+  padding: 12px 24px;
+  margin-bottom: 20px;
+}
+.logo-bar img {
+  max-height: 52px;
+  width: auto;
+  display: block;
+}
+
+.masthead {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  gap: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+.brand-name {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.brand-name b { color: var(--ink); font-weight: 600; }
+.masthead h1 {
+  margin: 0;
+  font-family: 'Geist', sans-serif;
+  font-weight: 700;
+  font-size: 34px;
+  line-height: 1.1;
+  letter-spacing: -.025em;
+  color: var(--ink);
+}
+.masthead h1 .accent { color: var(--accent-2); font-weight: 700; }
+.masthead .sub {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 14px;
+  max-width: 60ch;
+}
+.masthead .meta {
+  text-align: right;
+  font-size: 12px;
+  color: var(--muted);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+.meta .row { display: flex; align-items: center; gap: 8px; }
+.meta .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--good); }
+.meta b { color: var(--ink); font-weight: 600; }
+
+/* ============ NAV ============ */
+.nav {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 28px;
+  margin-bottom: 28px;
+}
+.nav-btn {
+  position: relative;
+  appearance: none;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px 22px;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease, transform .15s ease;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 14px;
+  color: var(--ink);
+}
+.nav-btn:hover { border-color: var(--border-strong); background: var(--bg-elev); }
+.nav-btn .num {
+  font-family: 'Geist Mono', monospace;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  letter-spacing: .04em;
+  background: var(--bg);
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+.nav-btn .nav-text { display: flex; flex-direction: column; gap: 2px; }
+.nav-btn .nav-title { font-size: 16px; font-weight: 600; color: var(--ink); letter-spacing: -.01em; }
+.nav-btn .nav-desc { font-size: 12px; font-weight: 400; color: var(--muted); }
+.nav-btn .nav-meta {
+  font-family: 'Geist Mono', monospace;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  text-align: right;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+.nav-btn.active { background: var(--ink); border-color: var(--ink); }
+.nav-btn.active .nav-title { color: #FFFFFF; }
+.nav-btn.active .nav-desc { color: rgba(255,255,255,.7); }
+.nav-btn.active .num { color: var(--accent-4); background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.18); }
+.nav-btn.active .nav-meta { color: var(--accent-4); }
+
