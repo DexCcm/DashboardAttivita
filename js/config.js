@@ -42,3 +42,8 @@ const CAT_COLORS = {
 };
 const USER_PALETTE = ["--accent-1","--accent-2","--accent-3","--accent-4","--accent-5","--muted-2","--border-strong"];
 
+// Plafond shared state — dichiarato globalmente per essere accessibile da firebase.js
+let pfTotali    = [];  // [{eval, progetto, iniziale, inserite, rimanenti, stato}]
+let pfDettaglio = [];  // [{anno, mese, progetto, task, eval, ore, giorni}]
+let pfPending   = [];  // righe da scrivere nel file Excel
+

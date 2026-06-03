@@ -2,12 +2,9 @@
    PLAFOND PAGE (Page 3) — Excel read / pending rows / write back
    ============================================================ */
 (function() {
-  // State
+  // State locale (pfTotali, pfDettaglio, pfPending sono globali in config.js)
   let pfWorkbook = null;        // ExcelJS workbook
   let pfFileName = "Fatturazioni_Plafond_Mensili_Credem.xlsx";
-  let pfTotali  = [];           // [{plafond, eval, iniziale, inserite, rimanenti, stato, rowIdx}]
-  let pfDettaglio = [];         // [{anno, mese, progetto, task, eval, ore, giorni, rowIdx}]
-  let pfPending = [];           // user-added rows to be written
   let pfDettShow = 20;          // visualizzazione storico
 
   const PALETTE = ["--accent-3","--accent-2","--accent-1","--accent-4","--accent-5","--muted-2","--border-strong"];
@@ -627,5 +624,8 @@
 
   // Init: empty state
   showSections(false);
+
+  // Espone pfRenderAll globalmente per firebase.js
+  window.pfRenderAll = pfRenderAll;
 })();
 
