@@ -87,7 +87,10 @@
   /* ======================================================
      RAPPORTINI — SAVE
      Path: /rapportini_ccm/{anno_mese}/rows/{key}
-     Key deterministica: utente__dataIso__compito  → upsert
+     Key: utente__dataIso__compito  → upsert.
+     Sessioni multiple dello stesso task nello stesso giorno
+     vengono SOMMATE (evita collisioni di chiave che causano
+     perdita di ore).
   ====================================================== */
   $("fbBtnSaveRap").onclick = async () => {
     if(!rawData.length) { alert("Nessun dato. Importa prima i rapportini."); return; }
@@ -108,21 +111,30 @@
         return;
       }
 
+      // Aggrega per chiave: più sessioni dello stesso task nello stesso giorno → ore sommate
       const updates = {};
       subset.forEach(r => {
         const ds  = r.data ? isoDate(r.data) : "no_date";
         const key = fbKey(r.utente) + "__" + ds + "__" + fbKey(r.compito || "nocompito");
-        updates[key] = {
-          utente: r.utente||"", progetto: r.progetto||"", compito: r.compito||"",
-          parent: r.parent||"", root: r.root||"", ore: r.ore,
-          dataIso: ds, categoria: r.categoria||"Altro", anno, mese
-        };
+        if(updates[key]) {
+          // Stessa chiave → somma le ore, mantieni gli altri campi invariati
+          updates[key].ore = Math.round((updates[key].ore + r.ore) * 10000) / 10000;
+        } else {
+          updates[key] = {
+            utente: r.utente||"", progetto: r.progetto||"", compito: r.compito||"",
+            parent: r.parent||"", root: r.root||"", ore: r.ore,
+            dataIso: ds, categoria: r.categoria||"Altro", anno, mese
+          };
+        }
       });
 
       await fbDB.ref("rapportini_ccm/" + fbPath(anno, mese) + "/rows").update(updates);
       const n = Object.keys(updates).length;
+      const rawN = subset.length;
+      const merged = rawN - n;
       fbStatus("fbRapStatus","fbRapStatusTxt","ok","Salvati " + n + " record");
-      alert("✅ Salvati " + n + " record su Firebase per " + mese + " " + anno + ".");
+      alert(`✅ Salvati ${n} record su Firebase per ${mese} ${anno}.` +
+            (merged > 0 ? `\n(${merged} sessioni multiple aggregate per stesso task/giorno)` : ""));
     } catch(err) {
       console.error("fbSaveRap:", err);
       fbStatus("fbRapStatus","fbRapStatusTxt","err","Errore salvataggio");
@@ -264,7 +276,7 @@
       $("pfFileName").textContent = "📦 Firebase · " + mese + " " + anno;
 
       const n = pfTotali.length;
-      fbStatus("fbPfStatus","fbPfStatusTxt","ok",n + " plafond caricati");
+      fbStatus("fbPfStatus","fbPfStatusTxt","ok", n + " plafond caricati");
     } catch(err) {
       console.error("fbLoadPf:", err);
       fbStatus("fbPfStatus","fbPfStatusTxt","err","Errore caricamento");
@@ -281,4 +293,3 @@
   }
 
 })(); // end initFirebase
-
