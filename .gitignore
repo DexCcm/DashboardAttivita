@@ -1,0 +1,17 @@
+# Backup generati automaticamente
+*.backup.html
+
+# File Excel — dati sensibili, non versionare
+*.xlsx
+*.xls
+
+# File XML export Zoho
+*.xml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/

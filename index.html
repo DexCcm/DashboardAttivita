@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CCM Quadient · Dashboard</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>📊</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<!-- Firebase SDK (compat) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<!-- Styles -->
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/pages.css">
+</head>
+<body data-palette="cream" data-density="default">
+<div class="app">
+
+  <!-- ======= LOGO BAR ======= -->
+  <div class="logo-bar">
+    <img src="logo_dataexpert.png" alt="DataExpert" onerror="this.style.display='none'">
+  </div>
+
+  <!-- ======= MASTHEAD ======= -->
+  <header class="masthead">
+    <div>
+      <h1>Dashboard <span class="accent">CCM Quadient</span></h1>
+      <div class="sub">Analisi rapportini Zoho, performance task e plafond CREDEM in un'unica vista.</div>
+    </div>
+    <div class="meta">
+      <div class="row"><span>Periodo</span><b class="mono" id="metaPeriodo">— · —</b></div>
+      <div class="row"><span class="dot"></span><span id="metaSync">Sincronizzato adesso</span></div>
+      <div class="row"><span>Owner</span><b>S. Viscomi</b></div>
+    </div>
+  </header>
+
+
+
+  <!-- ======= NAV ======= -->
+  <nav class="nav" role="tablist">
+    <button class="nav-btn active" data-page="rapportini" role="tab">
+      <span class="num">01</span>
+      <span class="nav-text">
+        <span class="nav-title">Rapportini</span>
+        <span class="nav-desc">Analisi ore lavorate · Zoho</span>
+      </span>
+      <span class="nav-meta" id="navMetaR">— h<br/>— utenti</span>
+    </button>
+    <button class="nav-btn" data-page="tasks" role="tab">
+      <span class="num">02</span>
+      <span class="nav-text">
+        <span class="nav-title">Task &amp; KPI</span>
+        <span class="nav-desc">Stima vs Log · accuracy</span>
+      </span>
+      <span class="nav-meta" id="navMetaT">— task<br/>— accuracy</span>
+    </button>
+    <button class="nav-btn" data-page="plafond" role="tab">
+      <span class="num">03</span>
+      <span class="nav-text">
+        <span class="nav-title">Plafond CREDEM</span>
+        <span class="nav-desc">Consumo giornate per linea</span>
+      </span>
+      <span class="nav-meta" id="navMetaP">— gg<br/>residuo</span>
+    </button>
+  </nav>
+
+  <!-- ============================ PAGE 1: RAPPORTINI ============================ -->
+  <section id="page-rapportini" class="page active">
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="tb-left">
+        <button class="btn primary" id="btnImport">Importa Excel</button>
+        <input id="fileInput" type="file" accept=".xlsx,.xml" multiple>
+        <div class="seg" id="segView">
+          <button class="active" data-view="project">Progetti</button>
+          <button data-view="task">Task</button>
+        </div>
+        <div class="seg" id="segUnit">
+          <button class="active" data-unit="hours">Ore</button>
+          <button data-unit="days">Giorni</button>
+        </div>
+      </div>
+      <div class="tb-right">
+        <div class="search">
+          <svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg>
+          <input id="searchTxt" placeholder="Cerca utente, progetto, task…">
+        </div>
+        <div class="dropdown" id="ddProjects">
+          <button class="dropdownBtn">Progetti <span class="count" id="cntProjects" style="display:none">0</span></button>
+          <div class="dropdownMenu" id="projectMenu"></div>
+        </div>
+        <div class="dropdown" id="ddTasks" style="display:none">
+          <button class="dropdownBtn">Task <span class="count" id="cntTasks" style="display:none">0</span></button>
+          <div class="dropdownMenu" id="taskMenu"></div>
+        </div>
+        <div class="dropdown" id="ddUsers">
+          <button class="dropdownBtn">Utenti <span class="count" id="cntUsers" style="display:none">0</span></button>
+          <div class="dropdownMenu" id="userMenu"></div>
+        </div>
+        <button class="btn ghost" id="btnReset">Reset</button>
+      </div>
+    </div>
+
+    <!-- Firebase toolbar (rapportini) -->
+    <div class="fb-toolbar" id="fbRapToolbar">
+      <div class="fb-month-sel">
+        <label>Mese</label>
+        <select id="fbRapMese">
+          <option>Gennaio</option><option>Febbraio</option><option>Marzo</option>
+          <option>Aprile</option><option>Maggio</option><option>Giugno</option>
+          <option>Luglio</option><option>Agosto</option><option>Settembre</option>
+          <option>Ottobre</option><option>Novembre</option><option>Dicembre</option>
+        </select>
+        <input id="fbRapAnno" type="number" min="2024" max="2030" value="2026">
+      </div>
+      <div class="fb-sep"></div>
+      <button class="btn" id="fbBtnLoadRap" title="Carica i rapportini del mese selezionato da Firebase">⬇ Carica da Firebase</button>
+      <button class="btn" id="fbBtnSaveRap" disabled title="Salva i rapportini caricati su Firebase (upsert per giorno+utente+task)">⬆ Salva su Firebase</button>
+      <div class="fb-sep"></div>
+      <span class="fb-status" id="fbRapStatus"><span class="dot"></span><span id="fbRapStatusTxt">Pronto</span></span>
+    </div>
+
+    <!-- KPI strip -->
+    <div class="kpi-strip">
+      <div class="kpi">
+        <div class="kpi-label">Ore totali</div>
+        <div class="kpi-value"><span id="kpiHours">—</span><span class="kpi-unit" id="kpiHoursUnit">h</span></div>
+        <div class="kpi-delta"><span id="kpiHoursSub">Importa i rapportini</span></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Utenti</div>
+        <div class="kpi-value" id="kpiUsers">—</div>
+        <div class="kpi-delta"><span id="kpiUsersSub">team CCM</span></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Progetti</div>
+        <div class="kpi-value" id="kpiProjects">—</div>
+        <div class="kpi-delta"><span>distinti nei rapportini</span></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Task tracciati</div>
+        <div class="kpi-value" id="kpiTasksR">—</div>
+        <div class="kpi-delta"><span>compiti distinti</span></div>
+      </div>
+    </div>
+
+    <!-- Panoramica utente -->
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Panoramica utente</h2>
+          <div class="sub" id="utentiPeriodo">Importa i rapportini per vedere la panoramica</div>
+        </div>
+        <div class="actions">
+          <div class="seg" id="segUserView">
+            <button class="active" data-uv="cards">Righe</button>
+            <button data-uv="totali">Tabella</button>
+          </div>
+        </div>
+      </div>
+      <div class="panel-body flush" id="userCardsWrap">
+        <div class="user-grid" id="userList"></div>
+      </div>
+      <div class="panel-body flush" id="userTotaliWrap" style="display:none; overflow:auto">
+        <table class="t" id="totaliTable"></table>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Distribuzione ore</h2>
+            <div class="sub" id="chartSub">Riepilogo per progetto</div>
+          </div>
+          <div class="actions">
+            <div class="seg" id="segChartMode">
+              <button class="active" data-cm="total">Totale</button>
+              <button data-cm="byUser">Per utente</button>
+            </div>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="chartProjects"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Composizione attività</h2>
+            <div class="sub">EVAL · SAL · Analisi · Call · Form. · Altro</div>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="chartDonut"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Pivot -->
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Tabella pivot · <span id="pivotTitleKey">Utente × Progetto</span></h2>
+          <div class="sub">Click sull'intestazione per ordinare · click cella per drill-down</div>
+        </div>
+      </div>
+      <div class="panel-body flush" style="overflow:auto">
+        <table class="t" id="pivotTbl"></table>
+      </div>
+    </div>
+
+    <!-- Detail drill-down -->
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Dettaglio</h2>
+          <div class="sub">Click su una card utente / categoria / cella pivot per visualizzare i record</div>
+        </div>
+      </div>
+      <div id="detailHeader" class="detail-empty">Nessun dettaglio aperto.</div>
+      <div class="panel-body flush" style="overflow:auto; display:none" id="detailTableWrap">
+        <table class="t" id="detailTable">
+          <thead>
+            <tr id="detailHeaderRow">
+              <th class="sortable" data-k="data">Data <span class="arr">▲▼</span></th>
+              <th class="sortable" data-k="utente">Utente <span class="arr">▲▼</span></th>
+              <th class="sortable" data-k="progetto">Progetto <span class="arr">▲▼</span></th>
+              <th class="sortable" data-k="compito">Compito <span class="arr">▲▼</span></th>
+              <th class="sortable" data-k="categoria">Categoria <span class="arr">▲▼</span></th>
+              <th class="sortable num" data-k="ore">Ore <span class="arr">▲▼</span></th>
+            </tr>
+          </thead>
+          <tbody id="detailBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============================ PAGE 2: TASK & KPI ============================ -->
+  <section id="page-tasks" class="page">
+
+    <div class="toolbar">
+      <div class="tb-left">
+        <button class="btn primary" id="tkBtnImport">Importa XLSX</button>
+        <input id="tkFileInput" type="file" accept=".xlsx" multiple>
+        <button class="btn ghost" id="tkBtnClear">Svuota dati</button>
+        <div class="seg" id="tkSegUnit">
+          <button class="active" data-unit="hours">Ore</button>
+          <button data-unit="days">Giorni</button>
+        </div>
+      </div>
+      <div class="tb-right">
+        <div class="search">
+          <svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg>
+          <input id="tkSearchTxt" placeholder="Cerca task…">
+        </div>
+        <select id="tkFilterStatus" class="btn"><option value="">Stato: tutti</option></select>
+        <select id="tkFilterOwner"  class="btn"><option value="">Owner: tutti</option></select>
+        <select id="tkTopN" class="btn">
+          <option value="10">Top 10</option>
+          <option value="15" selected>Top 15</option>
+          <option value="20">Top 20</option>
+          <option value="9999">Tutti</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="kpi-strip six">
+      <div class="kpi"><div class="kpi-label">Task</div><div class="kpi-value" id="tkKpiTasks">—</div><div class="kpi-delta"><span id="tkKpiFiles">Nessun file</span></div></div>
+      <div class="kpi"><div class="kpi-label">Stimate</div><div class="kpi-value"><span id="tkKpiEst">—</span><span class="kpi-unit" id="tkUnitEst">h</span></div><div class="kpi-delta"><span>Work hours</span></div></div>
+      <div class="kpi"><div class="kpi-label">Loggate</div><div class="kpi-value"><span id="tkKpiLog">—</span><span class="kpi-unit" id="tkUnitLog">h</span></div><div class="kpi-delta"><span>Total log</span></div></div>
+      <div class="kpi" id="tkKpiDiffBox"><div class="kpi-label">Δ Work − Log</div><div class="kpi-value"><span id="tkKpiDiff">—</span><span class="kpi-unit" id="tkUnitDiff">h</span></div><div class="kpi-delta"><span id="tkKpiDiffSub">in linea con la stima</span></div></div>
+      <div class="kpi"><div class="kpi-label">Accuracy</div><div class="kpi-value"><span id="tkKpiAcc">—</span><span class="kpi-unit">%</span></div><div class="kpi-delta"><span>Log / Work</span></div></div>
+      <div class="kpi"><div class="kpi-label">In overrun</div><div class="kpi-value" id="tkKpiOver">—</div><div class="kpi-delta"><span id="tkKpiOverPct">—</span></div></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Stima vs Log per task</h2>
+            <div class="sub">Ordinati per scostamento · barra orizzontale</div>
+          </div>
+          <div class="actions">
+            <span class="pill over">overrun</span>
+            <span class="pill under">anticipo</span>
+          </div>
+        </div>
+        <div class="chart-wrap tall"><canvas id="tkChartBar"></canvas></div>
+      </div>
+
+      <div class="panel" style="display:flex; flex-direction:column">
+        <div class="panel-head">
+          <div>
+            <h2>Distribuzione</h2>
+            <div class="sub" id="tkDonutSub">— task</div>
+          </div>
+        </div>
+        <div class="chart-wrap sm"><canvas id="tkChartDonut"></canvas></div>
+        <div>
+          <div class="task-sum-row early">
+            <div>
+              <div class="sum-lbl">Anticipo</div>
+              <div class="sum-desc">chiusi prima della stima</div>
+            </div>
+            <div>
+              <div class="sum-num" id="tkSumEarly">—</div>
+              <div class="sum-pct" id="tkSumEarlyPct">—</div>
+            </div>
+          </div>
+          <div class="task-sum-row line">
+            <div>
+              <div class="sum-lbl">In linea</div>
+              <div class="sum-desc">stima rispettata</div>
+            </div>
+            <div>
+              <div class="sum-num" id="tkSumZero">—</div>
+              <div class="sum-pct" id="tkSumZeroPct">—</div>
+            </div>
+          </div>
+          <div class="task-sum-row over">
+            <div>
+              <div class="sum-lbl">Overrun</div>
+              <div class="sum-desc">oltre la stima</div>
+            </div>
+            <div>
+              <div class="sum-num" id="tkSumOver">—</div>
+              <div class="sum-pct" id="tkSumOverPct">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Tabella analitica</h2>
+          <div class="sub">Click sull'intestazione per ordinare · footer con totali</div>
+        </div>
+      </div>
+      <div class="panel-body flush" style="overflow:auto">
+        <table class="t" id="tkTbl"></table>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============================ PAGE 3: PLAFOND ============================ -->
+  <section id="page-plafond" class="page">
+
+    <div class="toolbar">
+      <div class="tb-left">
+        <button class="btn primary" id="pfBtnImport">Importa file plafond</button>
+        <input id="pfFileInput" type="file" accept=".xlsx">
+        <span id="pfFileBadge" class="file-badge" style="display:none">
+          <span class="dot"></span><span id="pfFileName">—</span>
+        </span>
+      </div>
+      <div class="tb-right">
+        <button class="btn" id="pfBtnSuggest" disabled title="Pre-compila righe dai rapportini caricati in pagina 1">Suggerisci dai rapportini</button>
+        <button class="btn primary" id="pfBtnSave" disabled>Aggiorna Excel</button>
+      </div>
+    </div>
+
+    <!-- Firebase toolbar (plafond) -->
+    <div class="fb-toolbar" id="fbPfToolbar">
+      <div class="fb-month-sel">
+        <label>Mese storico</label>
+        <select id="fbPfMese">
+          <option>Gennaio</option><option>Febbraio</option><option>Marzo</option>
+          <option>Aprile</option><option>Maggio</option><option>Giugno</option>
+          <option>Luglio</option><option>Agosto</option><option>Settembre</option>
+          <option>Ottobre</option><option>Novembre</option><option>Dicembre</option>
+        </select>
+        <input id="fbPfAnno" type="number" min="2024" max="2030" value="2026">
+      </div>
+      <div class="fb-sep"></div>
+      <button class="btn" id="fbBtnLoadPf" title="Carica snapshot plafond del mese da Firebase (sola lettura)">⬇ Carica snapshot</button>
+      <button class="btn" id="fbBtnSavePf" disabled title="Salva lo stato attuale dei plafond su Firebase per il mese corrente">⬆ Salva snapshot</button>
+      <div class="fb-sep"></div>
+      <span class="fb-status" id="fbPfStatus"><span class="dot"></span><span id="fbPfStatusTxt">Pronto</span></span>
+    </div>
+
+    <!-- KPI strip (popolato da JS) -->
+    <div class="kpi-strip" id="pfKpiStrip">
+      <div class="kpi"><div class="kpi-label">Plafond attivi</div><div class="kpi-value" id="pfKpiCount">—</div><div class="kpi-delta"><span id="pfKpiCountSub">importa il file</span></div></div>
+      <div class="kpi"><div class="kpi-label">Giornate iniziali</div><div class="kpi-value"><span id="pfKpiInit">—</span><span class="kpi-unit">gg</span></div><div class="kpi-delta"><span>totale contrattualizzato</span></div></div>
+      <div class="kpi"><div class="kpi-label">Consumate</div><div class="kpi-value"><span id="pfKpiUsed">—</span><span class="kpi-unit">gg</span></div><div class="kpi-delta"><span id="pfKpiUsedPct">—</span></div></div>
+      <div class="kpi"><div class="kpi-label">Residuo</div><div class="kpi-value"><span id="pfKpiRem">—</span><span class="kpi-unit">gg</span></div><div class="kpi-delta"><span id="pfKpiRemSub">—</span></div></div>
+    </div>
+
+    <!-- Empty state when no file loaded -->
+    <div class="panel" id="pfEmptyPanel">
+      <div class="pf-empty">
+        <div class="pf-icon">📊</div>
+        <h3>Carica il file Plafond CREDEM</h3>
+        <p>Importa <code style="font-family:'Geist Mono',monospace;font-size:12px;background:var(--bg);padding:2px 6px;border-radius:3px;color:var(--ink-soft)">Fatturazioni_Plafond_Mensili_Credem.xlsx</code> per visualizzare lo stato dei plafond e aggiungere righe per il mese corrente. Le formule SUMIF e la struttura delle tabelle vengono preservate; potrai scaricare il file aggiornato.</p>
+      </div>
+    </div>
+
+    <!-- Suggest detail: subtotali per task × utente (visibile dopo "Suggerisci dai rapportini") -->
+    <div class="panel" id="pfSuggestSection" style="display:none">
+      <div class="panel-head">
+        <div>
+          <h2>Rilevamento rapportini · <span id="pfSuggestLabel">—</span></h2>
+          <div class="sub">Ore attribuite ai plafond dai timelog caricati — subtotali per task e utente</div>
+        </div>
+        <div class="actions">
+          <button class="btn ghost" id="pfBtnCloseSuggest">Chiudi</button>
+        </div>
+      </div>
+      <div id="pfSuggestContent"></div>
+    </div>
+
+    <!-- Plafond cards -->
+    <div id="pfCardsSection" style="display:none">
+      <div class="section-label">Plafond CREDEM · stato dal file</div>
+      <div class="grid-3" id="plafondGrid"></div>
+    </div>
+
+    <!-- Aggiungi riga -->
+    <div class="panel" id="pfAddSection" style="display:none">
+      <div class="panel-head">
+        <div>
+          <h2>Aggiungi righe in <span class="mono" style="color:var(--ink)">Dettaglio Plafond</span></h2>
+          <div class="sub">Le righe sono accodate alla <span class="mono">TabellaTask</span> e fanno ricalcolare automaticamente i totali nel primo foglio</div>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="fld">
+          <label>Anno</label>
+          <input id="pfFAnno" type="number" min="2024" max="2030" value="">
+        </div>
+        <div class="fld">
+          <label>Mese</label>
+          <select id="pfFMese">
+            <option>Gennaio</option><option>Febbraio</option><option>Marzo</option>
+            <option>Aprile</option><option>Maggio</option><option>Giugno</option>
+            <option>Luglio</option><option>Agosto</option><option>Settembre</option>
+            <option>Ottobre</option><option>Novembre</option><option>Dicembre</option>
+          </select>
+        </div>
+        <div class="fld">
+          <label>Progetto</label>
+          <input id="pfFProg" type="text" placeholder="es. Credem Ticket Massiva">
+        </div>
+        <div class="fld">
+          <label>Task</label>
+          <input id="pfFTask" type="text" placeholder="Descrizione task">
+        </div>
+        <div class="fld">
+          <label>EVAL</label>
+          <select id="pfFEval"></select>
+        </div>
+        <div class="fld">
+          <label>Totale Ore</label>
+          <input id="pfFOre" type="number" min="0" step="0.25" placeholder="0">
+        </div>
+        <div class="fld">
+          <button class="btn primary" id="pfBtnAddRow">Aggiungi</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pending rows -->
+    <div class="panel" id="pfPendingSection" style="display:none">
+      <div class="panel-head">
+        <div>
+          <h2>Righe in attesa di scrittura · <span id="pfPendingCount">0</span></h2>
+          <div class="sub">Verranno accodate alla TabellaTask al click di <b>Aggiorna Excel</b></div>
+        </div>
+        <div class="actions">
+          <button class="btn ghost" id="pfBtnClearPending">Svuota</button>
+        </div>
+      </div>
+      <div class="panel-body flush" style="overflow:auto">
+        <table class="t" id="pfPendingTbl"></table>
+      </div>
+    </div>
+
+    <!-- Dettaglio storico (ultime righe da TabellaTask) -->
+    <div class="panel" id="pfDettaglioSection" style="display:none">
+      <div class="panel-head">
+        <div>
+          <h2>Storico righe · <span class="mono" style="color:var(--ink)">Dettaglio Plafond</span></h2>
+          <div class="sub">Ultime <span id="pfDettCount">—</span> righe dal file caricato</div>
+        </div>
+        <div class="actions">
+          <div class="seg" id="pfSegDett">
+            <button class="active" data-n="20">20</button>
+            <button data-n="50">50</button>
+            <button data-n="9999">Tutte</button>
+          </div>
+        </div>
+      </div>
+      <div class="panel-body flush" style="overflow:auto">
+        <table class="t" id="pfDettaglioTbl"></table>
+      </div>
+    </div>
+
+  </section>
+
+  <footer class="footer">
+    <div>CCM Quadient · Dashboard operativa · v3.0</div>
+    <div class="serif">Designed by Simone Viscomi</div>
+  </footer>
+
+</div>
+
+<!-- Config & helpers -->
+<script src="js/config.js"></script>
+<script src="js/helpers.js"></script>
+<!-- Modules -->
+<script src="js/rapportini.js"></script>
+<script src="js/tasks.js"></script>
+<script src="js/plafond.js"></script>
+<script src="js/firebase.js"></script>
+<!-- Bootstrap -->
+<script>
+/* ============================================================
+   INIT
+   ============================================================ */
+function fmtNowIT() {
+  const now = new Date();
+  return now.toLocaleString("it-IT", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+}
+$("metaSync").textContent = "Aggiornato " + fmtNowIT();
+
+renderAll();
+</script>
+</body>
+</html>
+                      
