@@ -59,7 +59,7 @@ $("fileInput").onchange = e => {
             parent, root,
             ore,
             data,
-            categoria: categoryOf(compito, parent, root)
+            categoria: categoryOf(compito, parent, root, r[idx.p])
           });
         });
       } catch(err) { console.error("Errore parsing", f.name, err); }
@@ -92,7 +92,15 @@ function initUI() {
   buildMenu("projectMenu", [...new Set(rawData.map(r => r.progetto).filter(Boolean))].sort(), selProjects, "cntProjects");
   buildMenu("taskMenu",    [...new Set(rawData.map(r => r.compito).filter(Boolean))].sort(),  selTasks,    "cntTasks");
   buildMenu("userMenu",    [...new Set(rawData.map(r => r.utente).filter(Boolean))].sort(),   selUsers,    "cntUsers");
+  const dates = rawData.map(r => r.data).filter(Boolean);
+  if(dates.length) {
+    const minD = new Date(Math.min(...dates)), maxD = new Date(Math.max(...dates));
+    const fmtD = d => d.toLocaleDateString("it-IT",{day:"2-digit",month:"short",year:"numeric"});
+    $("metaPeriodo").textContent = fmtD(minD) + " · " + fmtD(maxD);
+  }
+  $("navMetaR").innerHTML = formatUnit(rawData.reduce((s,r)=>s+r.ore,0)) + " " + unitLabel() + "<br/>" + new Set(rawData.map(r=>r.utente)).size + " utenti";
 }
+window.initUI = initUI;
 function buildMenu(id, values, store, countId) {
   const menu = $(id);
   menu.innerHTML = "";
@@ -242,9 +250,9 @@ function renderUserCards(d) {
       });
       ferie = Math.max(0, teoriche - ore);
     }
-    const byCat = { EVAL:0, SAL:0, Analisi:0, Call:0, Formazione:0, Altro:0 };
+    const byCat = {};
     sub.forEach(r => { byCat[r.categoria] = (byCat[r.categoria]||0) + r.ore; });
-    const coord = byCat.SAL + byCat.Call + byCat.Analisi;
+    const coord = (byCat.SAL||0) + (byCat.Call||0) + (byCat.Analisi||0);
     const coordPct = ore ? coord/ore : 0;
     const flag = role === "Developer" && coordPct > 0.20;
     const tag = flag
@@ -262,26 +270,29 @@ function renderUserCards(d) {
     const bars = Object.entries(byCat).map(([k,v]) => {
       if(!v) return "";
       const w = totCat ? (v/totCat*100) : 0;
-      return `<div class="seg-bar" style="width:${w}%;background:${css(CAT_COLORS[k])}" title="${k}: ${formatUnit(v)} ${unitLabel()}"></div>`;
+      return `<div class="seg-bar" style="width:${w}%;background:${css(catColor(k))}" title="${k}: ${formatUnit(v)} ${unitLabel()}"></div>`;
     }).join("");
 
-    const catRows = Object.entries(byCat).map(([k,v]) => {
-      const p = ore ? Math.round(v/ore*100) : 0;
-      const safeU = u.replace(/'/g,"\\'");
-      return `<div class="cat-row" onclick="openCategoryDetails('${safeU}','${k}')">
-        <span class="cat-sw" style="background:${css(CAT_COLORS[k])}"></span>
-        <span class="cat-lbl">${k}</span>
-        <span class="cat-val">${formatUnit(v)} ${unitLabel()}</span>
-        <span class="cat-pct">${p}%</span>
-      </div>`;
-    }).join("");
+    const catRows = Object.entries(byCat)
+      .filter(([,v]) => v > 0)
+      .sort(([,a],[,b]) => b - a)
+      .map(([k,v]) => {
+        const p = ore ? Math.round(v/ore*100) : 0;
+        const safeU = u.replace(/'/g,"\\'");
+        return `<div class="cat-row" onclick="openCategoryDetails('${safeU}','${k}')">
+          <span class="cat-sw" style="background:${css(catColor(k))}"></span>
+          <span class="cat-lbl">${k}</span>
+          <span class="cat-val">${toUnit(v).toFixed(1)} ${unitLabel()}</span>
+          <span class="cat-pct">${p}%</span>
+        </div>`;
+      }).join("");
 
     const oreSub  = chartUnit === "days" ? `${ore.toFixed(1)} h` : `${(ore/8).toFixed(1)} gg`;
     const ferieSub = chartUnit === "days" ? `${ferie.toFixed(1)} h` : `${(ferie/8).toFixed(1)} gg`;
     const statsHtml = workingDays.length ? `
       <div class="uc-stats">
-        <div><span class="l">Ore Lav.</span><span class="v">${formatUnit(ore)}</span><span class="uc-stat-sub">${oreSub}</span></div>
-        <div><span class="l">Ferie</span><span class="v">${formatUnit(ferie)}</span><span class="uc-stat-sub">${ferieSub}</span></div>
+        <div><span class="l">Ore Lav.</span><span class="v">${toUnit(ore).toFixed(1)}</span><span class="uc-stat-sub">${oreSub}</span></div>
+        <div><span class="l">Ferie</span><span class="v">${toUnit(ferie).toFixed(1)}</span><span class="uc-stat-sub">${ferieSub}</span></div>
         <div><span class="l">Pieni</span><span class="v">${pieni}</span><span class="uc-stat-sub">gg interi</span></div>
         <div><span class="l">Parz.</span><span class="v">${parz}</span><span class="uc-stat-sub">gg parziali</span></div>
         <div><span class="l">Assenti</span><span class="v">${ass}</span><span class="uc-stat-sub">gg assenza</span></div>
@@ -318,24 +329,33 @@ function buildTotaliData(d) {
     workingDays = workingDaysBetween(minD, maxD);
     teoriche = workingDays.length * 8;
   }
+  // Categorie dinamiche: ordine fisso prima, poi client alphabeticamente
+  const dynCats = [...new Set(d.map(r => r.categoria))]
+    .sort((a,b) => {
+      const ai = CAT_ORDER.indexOf(a), bi = CAT_ORDER.indexOf(b);
+      if(ai>=0 && bi>=0) return ai-bi;
+      if(ai>=0) return -1; if(bi>=0) return 1;
+      return a.localeCompare(b);
+    });
+
   const users = [...new Set(d.map(r => r.utente))];
   const rows = users.map(u => {
     const sub = d.filter(r => r.utente === u);
     const ore = sub.reduce((s,r)=>s+r.ore, 0);
     const ferie = teoriche ? Math.max(0, teoriche - ore) : 0;
-    const byCat = { EVAL:0,SAL:0,Analisi:0,Call:0,Formazione:0,Altro:0 };
+    const byCat = {};
+    dynCats.forEach(c => byCat[c] = 0);
     sub.forEach(r => { byCat[r.categoria] = (byCat[r.categoria]||0) + r.ore; });
-    const coord = byCat.SAL + byCat.Call + byCat.Analisi;
+    const coord = (byCat.SAL||0) + (byCat.Call||0) + (byCat.Analisi||0);
     const coordPct = ore ? coord/ore : 0;
     const role = roleOf(u);
     return {
       utente: u, role, ore, gg: ore/8, ferieH: ferie, ferieGg: ferie/8,
-      EVAL: byCat.EVAL, SAL: byCat.SAL, Analisi: byCat.Analisi, Call: byCat.Call,
-      Formazione: byCat.Formazione, Altro: byCat.Altro, coordPct,
+      ...byCat, coordPct,
       flag: role === "Developer" && coordPct > 0.20
     };
   });
-  totaliData = { rows, hasDates: workingDays.length > 0 };
+  totaliData = { rows, dynCats, hasDates: workingDays.length > 0 };
 }
 
 function drawTotali() {
@@ -344,7 +364,7 @@ function drawTotali() {
     tbl.innerHTML = '<thead><tr><th>—</th></tr></thead><tbody><tr><td style="text-align:center;color:var(--muted);padding:40px">Importa i rapportini</td></tr></tbody>';
     return;
   }
-  const { rows, hasDates } = totaliData;
+  const { rows, dynCats, hasDates } = totaliData;
   const dir = sortTotali.dir === "asc" ? 1 : -1;
   const k = sortTotali.key;
   const sorted = [...rows].sort((a,b) => {
@@ -354,6 +374,7 @@ function drawTotali() {
   });
   const arr = key => sortTotali.key === key ? (sortTotali.dir === "asc" ? "▲" : "▼") : "▲▼";
   const cls = key => "sortable" + (sortTotali.key === key ? " active" : "");
+  const ck = c => c.replace(/[^a-zA-Z0-9]/g, "_"); // safe key for data-k
 
   let html = "<thead><tr>"
     + `<th class="${cls('utente')}" data-k="utente">Utente <span class="arr">${arr('utente')}</span></th>`
@@ -361,20 +382,16 @@ function drawTotali() {
     + `<th class="${cls('ore')} num" data-k="ore">Ore lavorate <span class="arr">${arr('ore')}</span></th>`
     + `<th class="${cls('gg')} num" data-k="gg">Giornate <span class="arr">${arr('gg')}</span></th>`
     + (hasDates ? `<th class="${cls('ferieH')} num" data-k="ferieH">Ferie (h) <span class="arr">${arr('ferieH')}</span></th><th class="${cls('ferieGg')} num" data-k="ferieGg">Ferie (gg) <span class="arr">${arr('ferieGg')}</span></th>` : "")
-    + `<th class="${cls('EVAL')} num" data-k="EVAL">EVAL <span class="arr">${arr('EVAL')}</span></th>`
-    + `<th class="${cls('SAL')} num" data-k="SAL">SAL <span class="arr">${arr('SAL')}</span></th>`
-    + `<th class="${cls('Analisi')} num" data-k="Analisi">Analisi <span class="arr">${arr('Analisi')}</span></th>`
-    + `<th class="${cls('Call')} num" data-k="Call">Call <span class="arr">${arr('Call')}</span></th>`
-    + `<th class="${cls('Formazione')} num" data-k="Formazione">Formaz. <span class="arr">${arr('Formazione')}</span></th>`
-    + `<th class="${cls('Altro')} num" data-k="Altro">Altro <span class="arr">${arr('Altro')}</span></th>`
+    + dynCats.map(c => `<th class="${cls(c)} num" data-k="${ck(c)}">${esc(c)} <span class="arr">${arr(c)}</span></th>`).join("")
     + (hasDates ? `<th class="${cls('coordPct')} num" data-k="coordPct">Coord % <span class="arr">${arr('coordPct')}</span></th>` : "")
     + "</tr></thead><tbody>";
 
   let totOre=0, totFerie=0;
-  const totCat = { EVAL:0,SAL:0,Analisi:0,Call:0,Formazione:0,Altro:0 };
+  const totCat = {};
+  dynCats.forEach(c => totCat[c] = 0);
   sorted.forEach(r => {
     totOre += r.ore; totFerie += r.ferieH;
-    Object.keys(totCat).forEach(c => totCat[c] += r[c]);
+    dynCats.forEach(c => totCat[c] += r[c]||0);
     const safeU = r.utente.replace(/'/g,"\\'");
     html += `<tr class="clickable" onclick="openUserDetails('${safeU}')">`
       + `<td><b style="font-weight:600">${esc(r.utente)}</b></td>`
@@ -382,31 +399,21 @@ function drawTotali() {
       + `<td class="num mono">${formatUnit(r.ore)} ${unitLabel()}</td>`
       + `<td class="num mono">${r.gg.toFixed(2)}</td>`
       + (hasDates ? `<td class="num mono">${formatUnit(r.ferieH)}</td><td class="num mono">${r.ferieGg.toFixed(2)}</td>` : "")
-      + `<td class="num mono">${formatUnit(r.EVAL)}</td>`
-      + `<td class="num mono">${formatUnit(r.SAL)}</td>`
-      + `<td class="num mono">${formatUnit(r.Analisi)}</td>`
-      + `<td class="num mono">${formatUnit(r.Call)}</td>`
-      + `<td class="num mono">${formatUnit(r.Formazione)}</td>`
-      + `<td class="num mono">${formatUnit(r.Altro)}</td>`
+      + dynCats.map(c => `<td class="num mono">${formatUnit(r[c]||0)}</td>`).join("")
       + (hasDates ? `<td class="num mono ${r.flag?'flag-bad':''}">${(r.coordPct*100).toFixed(1)}%</td>` : "")
       + "</tr>";
   });
   html += "</tbody>";
 
   const totGg = totOre/8;
-  const totCoord = totCat.SAL + totCat.Call + totCat.Analisi;
+  const totCoord = (totCat.SAL||0) + (totCat.Call||0) + (totCat.Analisi||0);
   const totCoordPct = totOre ? totCoord/totOre : 0;
   html += `<tfoot><tr>`
     + `<td><b>Totale</b></td><td class="muted">${sorted.length} utenti</td>`
     + `<td class="num mono">${formatUnit(totOre)} ${unitLabel()}</td>`
     + `<td class="num mono">${totGg.toFixed(2)}</td>`
     + (hasDates ? `<td class="num mono">${formatUnit(totFerie)}</td><td class="num mono">${(totFerie/8).toFixed(2)}</td>` : "")
-    + `<td class="num mono">${formatUnit(totCat.EVAL)}</td>`
-    + `<td class="num mono">${formatUnit(totCat.SAL)}</td>`
-    + `<td class="num mono">${formatUnit(totCat.Analisi)}</td>`
-    + `<td class="num mono">${formatUnit(totCat.Call)}</td>`
-    + `<td class="num mono">${formatUnit(totCat.Formazione)}</td>`
-    + `<td class="num mono">${formatUnit(totCat.Altro)}</td>`
+    + dynCats.map(c => `<td class="num mono">${formatUnit(totCat[c]||0)}</td>`).join("")
     + (hasDates ? `<td class="num mono">${(totCoordPct*100).toFixed(1)}%</td>` : "")
     + `</tr></tfoot>`;
 
@@ -563,11 +570,11 @@ function renderProjectsChart(d) {
 function renderCategoriesDonut(d) {
   if(chartDonut) chartDonut.destroy();
   const ctx = $("chartDonut").getContext("2d");
-  const byCat = { EVAL:0,SAL:0,Analisi:0,Call:0,Formazione:0,Altro:0 };
+  const byCat = {};
   d.forEach(r => { byCat[r.categoria] = (byCat[r.categoria]||0) + toUnit(r.ore); });
-  const labels = Object.keys(byCat);
-  const data = Object.values(byCat);
-  const colors = labels.map(l => css(CAT_COLORS[l]));
+  const labels = Object.keys(byCat).filter(k => byCat[k] > 0);
+  const data = labels.map(l => byCat[l]);
+  const colors = labels.map(l => css(catColor(l)));
   const opts = chartOpts();
   delete opts.scales;
   opts.cutout = "62%";
@@ -628,7 +635,7 @@ function drawDetail() {
   const totH = detailRows.reduce((s,r)=>s+r.ore, 0);
   const rows = sorted.map(r => {
     const dStr = r.data ? r.data.toLocaleDateString("it-IT") : "—";
-    const catSw = `<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${css(CAT_COLORS[r.categoria||'Altro'])};margin-right:6px;vertical-align:middle"></span>`;
+    const catSw = `<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${css(catColor(r.categoria||'Credem - Altro'))};margin-right:6px;vertical-align:middle"></span>`;
     return `<tr>
       <td class="mono">${dStr}</td>
       <td>${esc(r.utente)}</td>
@@ -649,8 +656,8 @@ document.querySelectorAll("#detailHeaderRow th.sortable").forEach(th => {
   th.onclick = () => {
     const k = th.getAttribute("data-k");
     if(sortDetail.key === k) sortDetail.dir = sortDetail.dir === "asc" ? "desc" : "asc";
-    else { sortDetail.key = k; sortDetail.dir = (k === "data" || k === "ore") ? "desc" : "asc"; }
-    if(detailRows.length) drawDetail();
+    else { sortDetail.key = k; sortDetail.dir = "desc"; }
+    showDetail(detailRows, detailTitle);
   };
 });
 

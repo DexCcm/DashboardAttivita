@@ -123,7 +123,7 @@
           updates[key] = {
             utente: r.utente||"", progetto: r.progetto||"", compito: r.compito||"",
             parent: r.parent||"", root: r.root||"", ore: r.ore,
-            dataIso: ds, categoria: r.categoria||"Altro", anno, mese
+            dataIso: ds, categoria: r.categoria||"Credem - Altro", anno, mese
           };
         }
       });

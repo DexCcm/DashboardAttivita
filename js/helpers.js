@@ -2,8 +2,14 @@
    HELPERS
    ============================================================ */
 const $ = id => document.getElementById(id);
-const css = v => getComputedStyle(document.body).getPropertyValue(v.replace(/^var\(\s*|\s*\)$/g,"")).trim() || v;
-const esc = s => String(s ?? "").replace(/[&<>"']/g, m => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]));
+/* css() risolve CSS custom properties con cache — evita chiamate ripetute
+   a getComputedStyle() durante i cicli di render (prestazioni). */
+const _cssCache = {};
+const css = v => {
+  if(_cssCache[v] !== undefined) return _cssCache[v];
+  return (_cssCache[v] = getComputedStyle(document.body).getPropertyValue(v.replace(/^var\(\s*|\s*\)$/g,"")).trim() || v);
+};
+const esc = s => String(s ?? "").replace(/[&<>"']/g, m => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':'&quot;',"\'":"&#039;" }[m]));
 
 function toUnit(v) { return chartUnit === "days" ? v/8 : v; }
 function formatUnit(v) { return toUnit(v).toFixed(2); }
@@ -37,7 +43,7 @@ const EVA_RE = /EVA[L]?\s*\d+/i;
 function catFromName(n) {
   if(!n) return null;
   const t = String(n);
-  if(EVA_RE.test(t)) return "EVAL";
+  if(EVA_RE.test(t)) return "EVAL Credem";
   const tl = t.toLowerCase();
   if(/\bs\.?a\.?l\.?\b/.test(tl)) return "SAL";
   if(/\banalisi\b/.test(tl)) return "Analisi";
@@ -45,12 +51,24 @@ function catFromName(n) {
   if(/\bformazione\b/.test(tl)) return "Formazione";
   return null;
 }
-function categoryOf(task, parent, root) {
+
+/* Estrae il nome cliente dal progetto (per attivit\u00e0 non specifiche = sviluppi) */
+function clientFromProgetto(progetto) {
+  if(!progetto) return "Credem - Altro";
+  const p = progetto.trim();
+  if(/^credem/i.test(p)) return "Credem - Altro";
+  if(/presidio allianz/i.test(p)) return "Presidio Allianz";
+  const dash = p.indexOf(" - ");
+  if(dash !== -1) return p.substring(0, dash).trim();
+  const space = p.indexOf(" ");
+  return space !== -1 ? p.substring(0, space).trim() : p;
+}
+
+function categoryOf(task, parent, root, progetto) {
   const c = catFromName(task);
   if(c) return c;
-  if(catFromName(parent) === "EVAL") return "EVAL";
-  if(catFromName(root) === "EVAL")   return "EVAL";
-  return "Altro";
+  if(catFromName(parent) === "EVAL Credem") return "EVAL Credem";
+  if(catFromName(root)   === "EVAL Credem") return "EVAL Credem";
+  return clientFromProgetto(progetto);
 }
 function findHeaderIndex(h, names) { return h.findIndex(c => names.includes(String(c ?? "").trim())); }
-

@@ -17,6 +17,11 @@ let pivotCache = null;
 let detailRows = [];
 let detailTitle = "";
 
+/* Plafond state — usato da plafond.js e firebase.js */
+let pfTotali    = [];
+let pfDettaglio = [];
+let pfPending   = [];
+
 const TEAM_ROLES = {
   "Simone Viscomi": "PM / Lead",
   "Damiano Angioletti": "Developer",
@@ -33,17 +38,27 @@ const HOLIDAYS = new Set([
 ]);
 
 const CAT_COLORS = {
-  EVAL: "var(--accent-1)",
-  SAL: "var(--accent-2)",
-  Analisi: "var(--accent-3)",
-  Call: "var(--accent-5)",
-  Formazione: "var(--accent-4)",
-  Altro: "var(--muted-2)"
+  "EVAL Credem":   "var(--accent-1)",
+  "SAL":           "var(--accent-2)",
+  "Analisi":       "var(--accent-3)",
+  "Call":          "var(--accent-5)",
+  "Formazione":    "var(--accent-4)",
+  "Credem - Altro":"var(--muted-2)"
 };
-const USER_PALETTE = ["--accent-1","--accent-2","--accent-3","--accent-4","--accent-5","--muted-2","--border-strong"];
 
-// Plafond shared state — dichiarato globalmente per essere accessibile da firebase.js
-let pfTotali    = [];  // [{eval, progetto, iniziale, inserite, rimanenti, stato}]
-let pfDettaglio = [];  // [{anno, mese, progetto, task, eval, ore, giorni}]
-let pfPending   = [];  // righe da scrivere nel file Excel
+/* Palette dinamica per client non-Credem */
+const CAT_DYN_PALETTE = ["--good","--accent-3","--accent-4","--accent-5","--warn","--accent-2","--muted","--border-strong"];
+const _catDynCache = {};
+let _catDynIdx = 0;
+function catColor(cat) {
+  if(CAT_COLORS[cat]) return CAT_COLORS[cat];
+  if(!_catDynCache[cat]) { _catDynCache[cat] = `var(${CAT_DYN_PALETTE[_catDynIdx++ % CAT_DYN_PALETTE.length]})`; }
+  return _catDynCache[cat];
+}
 
+const CAT_ORDER = ["EVAL Credem","SAL","Analisi","Call","Formazione","Credem - Altro"];
+
+const USER_PALETTE = [
+  "--accent-1","--accent-2","--accent-3","--accent-4","--accent-5",
+  "--good","--warn","--muted-2"
+];
