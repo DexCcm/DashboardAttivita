@@ -480,7 +480,7 @@
         </div>
         <div class="fld">
           <label>Progetto</label>
-          <select id="pfFProgetto"><option value="">— seleziona —</option></select>
+          <select id="pfFProg"><option value="">— seleziona —</option></select>
         </div>
         <div class="fld">
           <label>Task / Attività</label>
@@ -496,13 +496,26 @@
         </div>
       </div>
       <div class="actions">
-        <button class="btn primary" id="pfBtnAdd">Aggiungi riga</button>
+        <button class="btn primary" id="pfBtnAddRow">Aggiungi riga</button>
         <button class="btn ghost"   id="pfBtnSave" disabled>Scarica Excel aggiornato</button>
       </div>
       <div id="pfPendingSection" style="display:none">
-        <div class="section-label">Righe in coda</div>
-        <div id="pfPendingTable"></div>
+        <div class="section-label">Righe in coda (<span id="pfPendingCount">0</span>)</div>
+        <div id="pfPendingTbl"></div>
+        <div class="actions" style="margin-top:8px">
+          <button class="btn ghost" id="pfBtnClearPending">Svuota coda</button>
+        </div>
       </div>
+    </div>
+
+    <!-- Dettaglio plafond -->
+    <div class="panel" id="pfDettaglioSection" style="display:none">
+      <div class="panel-head">
+        <div>
+          <h2>Dettaglio ore per plafond <span class="mono" id="pfDettCount" style="font-size:13px;color:var(--muted)">0</span></h2>
+        </div>
+      </div>
+      <div id="pfDettaglioTbl"></div>
     </div>
 
   </section><!-- /page-plafond -->
