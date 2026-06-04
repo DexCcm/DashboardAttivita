@@ -400,16 +400,16 @@
     <div class="panel" id="pfEmptyPanel">
       <div class="pf-empty">
         <div class="pf-icon">
-          <svg width="96" height="72" viewBox="0 0 680 200" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto">
+          <svg id="pfChartIcon" width="240" height="150" viewBox="235 45 185 120" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto;max-width:100%">
             <style>
-              .pb1{animation:pgrow 1.3s 0.00s cubic-bezier(.4,0,.2,1) both;transform-origin:50% 155px;transform:scaleY(0)}
-              .pb2{animation:pgrow 1.3s 0.11s cubic-bezier(.4,0,.2,1) both;transform-origin:50% 155px;transform:scaleY(0)}
-              .pb3{animation:pgrow 1.3s 0.22s cubic-bezier(.4,0,.2,1) both;transform-origin:50% 155px;transform:scaleY(0)}
-              .pb4{animation:pgrow 1.3s 0.33s cubic-bezier(.4,0,.2,1) both;transform-origin:50% 155px;transform:scaleY(0)}
-              .pb5{animation:pgrow 1.3s 0.44s cubic-bezier(.4,0,.2,1) both;transform-origin:50% 155px;transform:scaleY(0)}
-              .pl{stroke-dasharray:360;stroke-dashoffset:360;animation:pdraw 1.5s 0.35s ease both}
-              .pd{opacity:0;animation:ppop .25s ease both}
-              .pd1{animation-delay:.52s}.pd2{animation-delay:.66s}.pd3{animation-delay:.82s}.pd4{animation-delay:.97s}.pd5{animation-delay:1.10s}
+              #pfChartIcon .pb1{animation:pgrow 1.3s 0.00s cubic-bezier(.4,0,.2,1) both;transform-origin:50% 155px;transform:scaleY(0)}
+              #pfChartIcon .pb2{animation:pgrow 1.3s 0.11s cubic-bezier(.4,0,.2,1) both;transform-origin:50% 155px;transform:scaleY(0)}
+              #pfChartIcon .pb3{animation:pgrow 1.3s 0.22s cubic-bezier(.4,0,.2,1) both;transform-origin:50% 155px;transform:scaleY(0)}
+              #pfChartIcon .pb4{animation:pgrow 1.3s 0.33s cubic-bezier(.4,0,.2,1) both;transform-origin:50% 155px;transform:scaleY(0)}
+              #pfChartIcon .pb5{animation:pgrow 1.3s 0.44s cubic-bezier(.4,0,.2,1) both;transform-origin:50% 155px;transform:scaleY(0)}
+              #pfChartIcon .pl{stroke-dasharray:360;stroke-dashoffset:360;animation:pdraw 1.5s 0.35s ease both}
+              #pfChartIcon .pd{opacity:0;animation:ppop .25s ease both}
+              #pfChartIcon .pd1{animation-delay:.52s}#pfChartIcon .pd2{animation-delay:.66s}#pfChartIcon .pd3{animation-delay:.82s}#pfChartIcon .pd4{animation-delay:.97s}#pfChartIcon .pd5{animation-delay:1.10s}
               @keyframes pgrow{to{transform:scaleY(1)}}
               @keyframes pdraw{to{stroke-dashoffset:0}}
               @keyframes ppop{to{opacity:1}}
@@ -480,92 +480,48 @@
         </div>
         <div class="fld">
           <label>Progetto</label>
-          <input id="pfFProg" type="text" placeholder="es. Credem Ticket Massiva">
+          <select id="pfFProgetto"><option value="">— seleziona —</option></select>
         </div>
         <div class="fld">
-          <label>Task</label>
-          <input id="pfFTask" type="text" placeholder="Descrizione task">
+          <label>Task / Attività</label>
+          <select id="pfFTask"><option value="">— seleziona —</option></select>
         </div>
         <div class="fld">
-          <label>EVAL</label>
-          <select id="pfFEval"></select>
+          <label>Eval Code</label>
+          <select id="pfFEval"><option value="">— seleziona —</option></select>
         </div>
         <div class="fld">
-          <label>Totale Ore</label>
-          <input id="pfFOre" type="number" min="0" step="0.25" placeholder="0">
+          <label>Ore</label>
+          <input id="pfFOre" type="number" min="0.5" max="24" step="0.5" value="8">
         </div>
-        <div class="fld">
-          <button class="btn primary" id="pfBtnAddRow">Aggiungi</button>
-        </div>
+      </div>
+      <div class="actions">
+        <button class="btn primary" id="pfBtnAdd">Aggiungi riga</button>
+        <button class="btn ghost"   id="pfBtnSave" disabled>Scarica Excel aggiornato</button>
+      </div>
+      <div id="pfPendingSection" style="display:none">
+        <div class="section-label">Righe in coda</div>
+        <div id="pfPendingTable"></div>
       </div>
     </div>
 
-    <!-- Pending rows -->
-    <div class="panel" id="pfPendingSection" style="display:none">
-      <div class="panel-head">
-        <div>
-          <h2>Righe in attesa di scrittura · <span id="pfPendingCount">0</span></h2>
-          <div class="sub">Verranno accodate alla TabellaTask al click di <b>Aggiorna Excel</b></div>
-        </div>
-        <div class="actions">
-          <button class="btn ghost" id="pfBtnClearPending">Svuota</button>
-        </div>
-      </div>
-      <div class="panel-body flush" style="overflow:auto">
-        <table class="t" id="pfPendingTbl"></table>
-      </div>
-    </div>
+  </section><!-- /page-plafond -->
 
-    <!-- Dettaglio storico (ultime righe da TabellaTask) -->
-    <div class="panel" id="pfDettaglioSection" style="display:none">
-      <div class="panel-head">
-        <div>
-          <h2>Storico righe · <span class="mono" style="color:var(--ink)">Dettaglio Plafond</span></h2>
-          <div class="sub">Ultime <span id="pfDettCount">—</span> righe dal file caricato</div>
-        </div>
-        <div class="actions">
-          <div class="seg" id="pfSegDett">
-            <button class="active" data-n="20">20</button>
-            <button data-n="50">50</button>
-            <button data-n="9999">Tutte</button>
-          </div>
-        </div>
-      </div>
-      <div class="panel-body flush" style="overflow:auto">
-        <table class="t" id="pfDettaglioTbl"></table>
-      </div>
-    </div>
+</div><!-- /app -->
 
-  </section>
-
-  <footer class="footer">
-    <div>CCM Quadient · Dashboard operativa · v3.0</div>
-    <div class="serif">Designed by Simone Viscomi</div>
-  </footer>
-
-</div>
-
-<!-- Config & helpers -->
+<!-- Bootstrap -->
+<script>
+  function fmtNowIT() {
+    return new Date().toLocaleString("it-IT",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"});
+  }
+  document.getElementById("metaSync").textContent = "Sincronizzato " + fmtNowIT();
+</script>
+<!-- App modules -->
 <script src="js/config.js"></script>
 <script src="js/helpers.js"></script>
-<!-- Modules -->
 <script src="js/rapportini.js"></script>
 <script src="js/tasks.js"></script>
 <script src="js/plafond.js"></script>
 <script src="js/firebase.js"></script>
-<!-- Bootstrap -->
-<script>
-/* ============================================================
-   INIT
-   ============================================================ */
-function fmtNowIT() {
-  const now = new Date();
-  return now.toLocaleString("it-IT", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
-}
-$("metaSync").textContent = "Aggiornato " + fmtNowIT();
-
-renderAll();
-</script>
 </body>
 </html>
-                      
