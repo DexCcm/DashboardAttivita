@@ -7,7 +7,7 @@
 .pf-empty h3 { margin: 0 0 8px; font-size: 18px; font-weight: 600; color: var(--ink); }
 .pf-empty p { margin: 0 auto; max-width: 560px; font-size: 13.5px; line-height: 1.5; }
 .pf-empty .pf-icon {
-  width: 48px; height: 48px;
+  width: 240px; height: 150px;
   border-radius: 12px;
   background: var(--bg-elev);
   border: 1px solid var(--border);
@@ -15,7 +15,6 @@
   align-items: center;
   justify-content: center;
   margin-bottom: 16px;
-  font-size: 24px;
 }
 
 .file-badge {
