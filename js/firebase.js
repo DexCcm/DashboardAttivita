@@ -213,7 +213,7 @@
       pfTotali.forEach(p => {
         if(!p.eval) return;
         updates[fbKey(String(p.eval))] = {
-          eval: p.eval, progetto: p.progetto||"",
+          eval: p.eval, plafond: p.plafond||"", progetto: p.progetto||"",
           iniziale: p.iniziale||0, inserite: p.inserite||0,
           rimanenti: p.rimanenti||0, stato: p.stato||"",
           anno, mese, savedAt: new Date().toISOString()
@@ -253,7 +253,7 @@
       }
 
       pfTotali = Object.values(val).map(p => ({
-        eval: p.eval, progetto: p.progetto||"",
+        eval: p.eval, plafond: p.plafond||"", progetto: p.progetto||"",
         iniziale: Number(p.iniziale)||0, inserite: Number(p.inserite)||0,
         rimanenti: Number(p.rimanenti)||0, stato: p.stato||""
       }));
