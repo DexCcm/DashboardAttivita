@@ -451,7 +451,7 @@
     </div>
 
     <!-- Plafond cards -->
-    <div id="pfCardsSection" style="display:none">
+    <div id="pfCardsSection" style="display:none;margin-bottom:32px">
       <div class="section-label">Plafond CREDEM · stato dal file</div>
       <div class="grid-3" id="plafondGrid"></div>
     </div>
@@ -501,7 +501,7 @@
       </div>
       <div id="pfPendingSection" style="display:none">
         <div class="section-label">Righe in coda (<span id="pfPendingCount">0</span>)</div>
-        <div id="pfPendingTbl"></div>
+        <table class="t" id="pfPendingTbl"></table>
         <div class="actions" style="margin-top:8px">
           <button class="btn ghost" id="pfBtnClearPending">Svuota coda</button>
         </div>
@@ -515,7 +515,7 @@
           <h2>Dettaglio ore per plafond <span class="mono" id="pfDettCount" style="font-size:13px;color:var(--muted)">0</span></h2>
         </div>
       </div>
-      <div id="pfDettaglioTbl"></div>
+      <table class="t" id="pfDettaglioTbl"></table>
     </div>
 
   </section><!-- /page-plafond -->
