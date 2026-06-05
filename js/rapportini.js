@@ -603,12 +603,15 @@ window.openDetails = (u, val) => {
 function showDetail(records, title) {
   detailRows = records;
   detailTitle = title;
+  detailFilters = {};           // reset filtri su ogni nuova apertura
   $("detailHeader").style.display = "none";
   $("detailTableWrap").style.display = "";
   drawDetail();
   $("detailTableWrap").scrollIntoView({ behavior: "smooth", block: "start" });
 }
+
 function drawDetail() {
+  /* --- aggiorna frecce di ordinamento nell'header statico --- */
   const headerRow = $("detailHeaderRow");
   if(headerRow) {
     headerRow.querySelectorAll("th.sortable").forEach(th => {
@@ -623,16 +626,70 @@ function drawDetail() {
       }
     });
   }
+
+  /* --- filter row: crea o aggiorna --- */
+  const detailThead = $("detailTable") && $("detailTable").querySelector("thead");
+  if(detailThead) {
+    let filterRow = document.getElementById("detailFilterRow");
+    if(!filterRow) {
+      filterRow = document.createElement("tr");
+      filterRow.id = "detailFilterRow";
+      filterRow.className = "filter-row";
+      detailThead.appendChild(filterRow);
+    }
+    const uniq = col => [...new Set(detailRows.map(r => String(r[col] || "")).filter(Boolean))].sort();
+    const makeSelect = (col, label) => {
+      const cur = detailFilters[col] || "";
+      const opts = uniq(col).map(v =>
+        `<option value="${esc(v)}"${cur === v ? " selected" : ""}>${esc(v)}</option>`
+      ).join("");
+      return `<select class="col-filter" data-col="${col}">
+        <option value="">— ${label} —</option>${opts}
+      </select>`;
+    };
+    filterRow.innerHTML =
+      `<td></td>` +
+      `<td>${makeSelect("utente","Utente")}</td>` +
+      `<td>${makeSelect("progetto","Progetto")}</td>` +
+      `<td><input class="col-filter-txt" data-col="compito" placeholder="Cerca compito…" value="${esc(detailFilters.compito||"")}"></td>` +
+      `<td>${makeSelect("categoria","Categoria")}</td>` +
+      `<td></td>`;
+    filterRow.querySelectorAll(".col-filter").forEach(sel => {
+      sel.onchange = () => { detailFilters[sel.dataset.col] = sel.value; drawDetail(); };
+    });
+    filterRow.querySelectorAll(".col-filter-txt").forEach(inp => {
+      inp.oninput = () => { detailFilters[inp.dataset.col] = inp.value; drawDetail(); };
+    });
+  }
+
+  /* --- applica filtri --- */
+  const visRows = detailRows.filter(r => {
+    if(detailFilters.utente    && String(r.utente    || "") !== detailFilters.utente)    return false;
+    if(detailFilters.progetto  && String(r.progetto  || "") !== detailFilters.progetto)  return false;
+    if(detailFilters.categoria && String(r.categoria || "") !== detailFilters.categoria) return false;
+    if(detailFilters.compito) {
+      const q = detailFilters.compito.toLowerCase();
+      if(!(r.compito || "").toLowerCase().includes(q)) return false;
+    }
+    return true;
+  });
+
+  /* --- ordina --- */
   const dir = sortDetail.dir === "asc" ? 1 : -1;
   const k = sortDetail.key;
-  const sorted = [...detailRows].sort((a,b) => {
+  const sorted = [...visRows].sort((a,b) => {
     let va, vb;
     if(k === "data") { va = a.data ? a.data.getTime() : 0; vb = b.data ? b.data.getTime() : 0; return (va - vb) * dir; }
     if(k === "ore")  { return (a.ore - b.ore) * dir; }
     va = a[k] || ""; vb = b[k] || "";
     return String(va).localeCompare(String(vb)) * dir;
   });
-  const totH = detailRows.reduce((s,r)=>s+r.ore, 0);
+
+  /* --- render corpo --- */
+  const totH   = visRows.reduce((s,r) => s + r.ore, 0);
+  const totAll = detailRows.reduce((s,r) => s + r.ore, 0);
+  const isFiltered = visRows.length < detailRows.length;
+
   const rows = sorted.map(r => {
     const dStr = r.data ? r.data.toLocaleDateString("it-IT") : "—";
     const catSw = `<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${css(catColor(r.categoria||'Credem - Altro'))};margin-right:6px;vertical-align:middle"></span>`;
@@ -645,19 +702,31 @@ function drawDetail() {
       <td class="num mono">${formatUnit(r.ore)}</td>
     </tr>`;
   }).join("");
-  $("detailBody").innerHTML = rows || '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">Nessun record</td></tr>';
-  // Update title row above
+
+  $("detailBody").innerHTML = rows ||
+    '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">Nessun record</td></tr>';
+
+  /* --- aggiorna titolo --- */
   $("detailHeader").style.display = "";
   $("detailHeader").classList.remove("detail-empty");
   $("detailHeader").classList.add("detail-header");
-  $("detailHeader").innerHTML = `<span><b>${esc(detailTitle)}</b> · ${detailRows.length} record · ${formatUnit(totH)} ${unitLabel()}</span><span class="muted" style="font-size:12px">Click sull'intestazione per ordinare</span>`;
+  const countStr = isFiltered
+    ? `${visRows.length} / ${detailRows.length} record`
+    : `${detailRows.length} record`;
+  const oreStr = isFiltered
+    ? `${formatUnit(totH)} ${unitLabel()} (tot. ${formatUnit(totAll)} ${unitLabel()})`
+    : `${formatUnit(totH)} ${unitLabel()}`;
+  $("detailHeader").innerHTML =
+    `<span><b>${esc(detailTitle)}</b> · ${countStr} · ${oreStr}</span>` +
+    `<span class="muted" style="font-size:12px">Click sull'intestazione per ordinare</span>`;
 }
+
+/* Ordinamento colonne (sort non resetta i filtri, chiama drawDetail direttamente) */
 document.querySelectorAll("#detailHeaderRow th.sortable").forEach(th => {
   th.onclick = () => {
     const k = th.getAttribute("data-k");
     if(sortDetail.key === k) sortDetail.dir = sortDetail.dir === "asc" ? "desc" : "asc";
     else { sortDetail.key = k; sortDetail.dir = "desc"; }
-    showDetail(detailRows, detailTitle);
+    drawDetail();
   };
 });
-

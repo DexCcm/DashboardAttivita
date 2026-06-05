@@ -16,6 +16,7 @@ let totaliData = null;
 let pivotCache = null;
 let detailRows = [];
 let detailTitle = "";
+let detailFilters = {};          // filtri colonne nella tabella dettaglio
 
 /* Plafond state — usato da plafond.js e firebase.js */
 let pfTotali    = [];
