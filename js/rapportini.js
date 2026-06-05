@@ -279,7 +279,7 @@ function renderUserCards(d) {
       .map(([k,v]) => {
         const p = ore ? Math.round(v/ore*100) : 0;
         const safeU = u.replace(/'/g,"\\'");
-        return `<div class="cat-row" onclick="openCategoryDetails('${safeU}','${k}')">
+        return `<div class="cat-row" onclick="event.stopPropagation();openCategoryDetails('${safeU}','${k}')">
           <span class="cat-sw" style="background:${css(catColor(k))}"></span>
           <span class="cat-lbl">${k}</span>
           <span class="cat-val">${toUnit(v).toFixed(1)} ${unitLabel()}</span>
@@ -298,7 +298,7 @@ function renderUserCards(d) {
         <div><span class="l">Assenti</span><span class="v">${ass}</span><span class="uc-stat-sub">gg assenza</span></div>
       </div>` : "";
 
-    html += `<div class="user-card">
+    html += `<div class="user-card" style="cursor:pointer" onclick="openUserDetails('${u.replace(/'/g,"\\'")}')">
       <div class="uc-head">
         <div>
           <div class="uc-name" onclick="openUserDetails('${u.replace(/'/g,"\\'")}')">${esc(u)}</div>
@@ -486,7 +486,7 @@ function drawPivot() {
       const onClick = `openDetails('${r.utente.replace(/'/g,"\\'")}','${c.replace(/'/g,"\\'")}')`;
       html += `<td class="num mono" style="${v?'cursor:pointer':''}" onclick="${v?onClick:''}">${v ? formatUnit(v) : ""}</td>`;
     });
-    html += `<td class="num mono"><b style="font-weight:600">${formatUnit(r.tot)}</b></td></tr>`;
+    html += `<td class="num mono" style="cursor:pointer" onclick="openUserDetails('${r.utente.replace(/'/g,"\\'")}')" title="Apri dettaglio ${r.utente}"><b style="font-weight:600">${formatUnit(r.tot)}</b></td></tr>`;
   });
   html += "</tbody>";
   html += `<tfoot><tr><td><b>Totale</b></td>`;
