@@ -247,7 +247,7 @@
 
     <div class="toolbar">
       <div class="tb-left">
-        <button class="btn primary" id="tkBtnImport">Importa XLSX</button>
+        <button class="btn primary" id="tkBtnImport">Importa Excel</button>
         <input id="tkFileInput" type="file" accept=".xlsx" multiple>
         <button class="btn ghost" id="tkBtnClear">Svuota dati</button>
         <div class="seg" id="tkSegUnit">
@@ -268,6 +268,7 @@
           <option value="20">Top 20</option>
           <option value="9999">Tutti</option>
         </select>
+        <button class="btn ghost" onclick="location.reload()">Reset</button>
       </div>
     </div>
 
@@ -357,7 +358,7 @@
 
     <div class="toolbar">
       <div class="tb-left">
-        <button class="btn primary" id="pfBtnImport">Importa file plafond</button>
+        <button class="btn primary" id="pfBtnImport">Importa Excel Plafond</button>
         <input id="pfFileInput" type="file" accept=".xlsx">
         <span id="pfFileBadge" class="file-badge" style="display:none">
           <span class="dot"></span><span id="pfFileName">—</span>
@@ -366,6 +367,7 @@
       <div class="tb-right">
         <button class="btn" id="pfBtnSuggest" disabled title="Pre-compila righe dai rapportini caricati in pagina 1">Suggerisci dai rapportini</button>
         <button class="btn primary" id="pfBtnSave" disabled>Aggiorna Excel</button>
+        <button class="btn ghost" onclick="location.reload()">Reset</button>
       </div>
     </div>
 
